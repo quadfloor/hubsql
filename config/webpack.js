@@ -20,13 +20,5 @@ module.exports = {
     filename: "hubsql.js"
   },
   externals: nodeModules,
-  plugins: [
-    new webpack.BannerPlugin({
-      banner: 'require("source-map-support").install();',
-      raw: true,
-      entryOnly: false
-    })
-  ],
-//  devtool: "sourcemap",
   mode: "production"
 };

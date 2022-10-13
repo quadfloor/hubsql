@@ -19,7 +19,6 @@
  */
 
 import { log } from "./helper";
-import { appendFileSync } from "fs-extra";
 
 import { config } from "./config";
 import { connect } from "mssql";
