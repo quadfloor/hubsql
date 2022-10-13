@@ -1,0 +1,17 @@
+
+insert into NTFX_RX (
+	SOURCE,
+	DESTINATION,
+	TYPE,
+	VERSION,
+	STATUS,
+	QUEUED_AT=NOW
+	)values (
+	"TOTVS",
+	"QUADFLOOR",
+	"MATERIAL$PUT",
+	"1",
+	"Q",
+	NOW
+	);
+

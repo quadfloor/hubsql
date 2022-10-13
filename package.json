@@ -1,0 +1,31 @@
+{
+  "name": "@monorepo/hubsql",
+  "version": "3.0.0",
+  "private": true,
+  "scripts": {
+    "babel": "node scripts/babel.js",
+    "start": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js",
+    "drop-sql-tables": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --drop-sql-tables",
+    "create-sql-tables": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --create-sql-tables",
+    "insert-sql-rows": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --insert-sql-rows",
+    "winstart": "set NODE_ENV=development && babel-node --ignore=' ' ./src/index.js",
+    "build": "webpack --config ./config/webpack.config.server.js",
+    "build-server": "webpack --config ./config/webpack.config.hubserver.js",
+    "relay-schema": "babel-node ./src/graphql/scripts/update-relay-schema.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "dataloader": "^1.4.0",
+    "mssql": "^9.0.1",
+    "path": "^0.12.7",
+    "source-map-support": "^0.5.6",
+    "validator": "^9.1.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/node": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "webpack": "^4.14.0",
+    "webpack-cli": "^3.0.8"
+  }
+}
