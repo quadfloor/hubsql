@@ -33,14 +33,13 @@ class Hub {
   getToken = async () => {
     let params = {
       company: config.hub.company,
-      id: config.hub.id,
       key: config.hub.key,
     };
 
     let url = new URL("http://" + config.hub.address + "/v1.0/token");
     for (const p in params) url.searchParams.append(p, params[p]);
 
-    log("debug", "hub.token", url);
+    log("debug", "hub.token", "Getting token at " + url);
 
     let response = await fetch(url, {
       method: "GET",

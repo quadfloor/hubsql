@@ -8,9 +8,8 @@ export const config = {
   },
   system: "NTFX",
   hub: {
-    address: "localhost:1222/api",
-    company: "Acme",
-    id: "123456id",
-    key: "123key123"
+    address: "localhost:4040/api",
+    company: "test",
+    key: "7UIsmg644zNw"
   }
 };
