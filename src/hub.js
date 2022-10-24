@@ -28,7 +28,7 @@ class Hub {
 
   isConnected = () => {
     return this.jwtToken !== null;
-  }
+  };
 
   getToken = async () => {
     let params = {
@@ -68,6 +68,7 @@ class Hub {
 
   get = async (method, params) => {
     let query = new URLSearchParams(params);
+
     let url =
       "http://" +
       config.hub.address +
@@ -75,7 +76,7 @@ class Hub {
       method +
       (query ? "?" + query : "");
 
-    log("debug", "hub.get", url);
+    log("debug", "hub.get", "URL: " + url);
 
     let response = await fetch(url, {
       method: "GET",
@@ -84,21 +85,27 @@ class Hub {
         Accept: "application/json",
         "Content-Type": "application/json",
       }),
-      body: JSON.stringify(params),
     });
+
+    let data = null;
+    let sts = false;
 
     if (response.status !== 200) {
       log("error", "hub.get", "Error getting data at " + url);
 
       // Unauthorized lead to a new connection request
-      if (response.status === 401) this.jwtToken = null;
-
-      return false;
+      if (response.status === 401) {
+        this.jwtToken = null;
+      } else {
+        data = response.json();
+        sts = true;
+      }
     }
 
-    let data = response.json();
+    log("debug", "hub.get", "Status: " + sts);
+    log("debug", "hub.get", "Data: " + JSON.stringify(data));
 
-    return data;
+    return { sts: sts, data: data };
   };
 
   post = async (method, params, data) => {
@@ -170,12 +177,18 @@ class Hub {
       data: row.DATA,
       status: row.STATUS,
       error: row.ERROR,
-      queuedAt: row.QUEUEDAT,
-      processedAt: row.PROCESSEDAT,
-      deletedAt: row.DELETEDAT,
     };
 
     return this.post("queue", null, data);
+  };
+
+  dequeue = async (type) => {
+    let data = {
+      source: config.system,
+      type: type,
+    };
+
+    return this.get("dequeue", data);
   };
 }
 

@@ -57,33 +57,60 @@ class Timer {
     setTimeout(this.connect, CONNECT_TICKER);
   };
 
-  moveData = async () => {
-    log("debug", "moveData", "Start");
+  sqlRowsToHub = async () => {
+    // Enqueue rows to server
+    let rows = await this.sql.getRowsWithStatus("Q");
 
-    if (this.sql.isConnected() && this.hub.isConnected()) {
-      try {
-        // Get queued rows
-        let rows = await this.sql.getRowsWithStatus("Q");
-
-        if (!rows) {
-          log("debug", "moveData", "No data");
-        } else {
-          for (const row of rows) {
-            try {
-              let sts = await this.hub.queue(row);
-              if (sts) await this.sql.setRowStatus(row.ID, "Q"); // Set processed
-            } catch (error) {
-              log(
-                "error",
-                "moveData",
-                "Error moving row " + row.ID + ": " + error
-              );
-            }
-          }
+    if (!rows) {
+      log("debug", "sqlToHub", "No sql data");
+    } else {
+      for (const row of rows) {
+        try {
+          let sts = await this.hub.queue(row);
+          if (sts) await this.sql.setRowStatus(row.ID, "P"); // Set processed
+        } catch (error) {
+          log("error", "sqlToHub", "Error moving row " + row.ID + ": " + error);
         }
-      } catch (error) {
-        log("error", "moveData", error);
       }
+    }
+  };
+
+  checkHubDoneRows = async () => {
+    // Dequeue rows from server
+    let { sts, data } = await this.hub.dequeue("D");
+
+    console.log("HERE!!!!!!!!!!")
+    console.log(sts)
+    console.log(data)
+
+    if (!sts) log("debug", "hubToSql", "No rows to dequeue");
+
+    log("error", "moveData", error);
+
+
+    for (const row of data) {
+      try {
+        let sts = await this.sql.setRowStatus(row.sourceId, "D");
+      } catch (error) {
+        log(
+          "error",
+          "checkHubDoneRows",
+          "Error queueing row " + row.ID + ": " + error
+        );
+      }
+    }
+  };
+
+  moveData = async () => {
+    try {
+      log("debug", "moveData", "Start");
+
+      if (this.sql.isConnected() && this.hub.isConnected()) {
+        this.sqlRowsToHub();
+        this.checkHubDoneRows();
+      }
+    } catch (error) {
+      log("error", "moveData", error);
     }
 
     setTimeout(this.moveData, MOVE_DATA_TICKER);
