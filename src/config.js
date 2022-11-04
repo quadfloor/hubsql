@@ -6,10 +6,10 @@ export const config = {
     port: 1433,
     database: "QFNTFX",
   },
-  system: "NTFX",
   hub: {
-    address: "localhost:4040/api",
-    company: "test",
+    address: "localhost:4444/api",
+    login: "NITRIFLEX",
     key: "7UIsmg644zNw"
-  }
+  },
+  system: "TOTVS"
 };

@@ -38,13 +38,34 @@ const SQL_TABLE_TEST_DATA =
   'QUADFLOOR', \
   '@type', \
   '1', \
-  NULL, \
+  '@data', \
   'Q', \
   NULL, \
   CURRENT_TIMESTAMP, \
   NULL, \
   NULL \
 )";
+
+const SQL_TABLE_XML_DATA = {
+  WORKCENTER$PUT:
+    '<?xml version="1.0" encoding="UTF-8" ?> \
+      <root> \
+        <name>WORKCENTER TEST</name> \
+        <description>WORKCENTER TEST DESCRIPTION</description> \
+      </root>',
+    MATERIAL$PUT: 
+    '<?xml version="1.0" encoding="UTF-8" ?> \
+      <root> \
+        <name>WORKCENTER TEST</name> \
+        <description>WORKCENTER TEST DESCRIPTION</description> \
+      </root>',
+    INVENTORY$PUT:
+    '<?xml version="1.0" encoding="UTF-8" ?> \
+      <root> \
+        <name>WORKCENTER TEST</name> \
+        <description>WORKCENTER TEST DESCRIPTION</description> \
+      </root>',
+};
 
 class Sql {
   constructor() {
@@ -118,8 +139,8 @@ class Sql {
         return;
       }
 
-      let rx = config.system + "_RX";
-      let tx = config.system + "_TX";
+      let rx = config.sqlDb.database + "_RX";
+      let tx = config.sqlDb.database + "_TX";
 
       let rxStmt =
         "IF NOT EXISTS (SELECT * FROM SYSOBJECTS WHERE NAME='" +
@@ -151,8 +172,8 @@ class Sql {
         return;
       }
 
-      let rx = config.system + "_RX";
-      let tx = config.system + "_TX";
+      let rx = config.sqlDb.database + "_RX";
+      let tx = config.sqlDb.database + "_TX";
 
       let rxStmt = "DROP TABLE " + rx;
 
@@ -181,7 +202,7 @@ class Sql {
         return;
       }
 
-      let tx = config.system + "_TX";
+      let tx = config.sqlDb.database + "_TX";
 
       let insertStmt =
         "INSERT INTO " +
@@ -190,15 +211,11 @@ class Sql {
         " VALUES " +
         SQL_TABLE_TEST_DATA;
 
-      const types = [
-        "MATERIAL$PUT",
-        "LOCATION$PUT",
-        "WORKCENTER$PUT",
-        "INVENTORY$PUT",
-      ];
+      const types = ["MATERIAL$PUT", "WORKCENTER$PUT", "INVENTORY$PUT"];
 
       for (const type of types) {
-        let stmt = insertStmt.replaceAll("@type", type);
+        let stmt = insertStmt.replaceAll("@type", type).replaceAll("@data", SQL_TABLE_XML_DATA[type]);
+
         await this.query(stmt);
         console.log("info", "Sql.insertTestRows", tx + " row inserted");
       }
@@ -222,7 +239,7 @@ class Sql {
         return;
       }
 
-      let rx = config.system + "_TX";
+      let rx = config.sqlDb.database + "_TX";
 
       let rxStmt =
         "SELECT * FROM  " +
@@ -234,7 +251,7 @@ class Sql {
       let data = await this.query(rxStmt);
 
       let rows = data.recordsets[0];
-      console.log(
+      log(
         "debug",
         "Sql.getRowsWithStatus",
         rx + " data received: " + rows.length + " records."
@@ -265,7 +282,7 @@ class Sql {
         return;
       }
 
-      let rx = config.system + "_TX";
+      let rx = config.sqlDb.database + "_TX";
 
       let rxStmt =
         "UPDATE " +
@@ -278,7 +295,7 @@ class Sql {
 
       let sts = await this.query(rxStmt);
 
-      console.log(
+      log(
         "debug",
         "Sql.setRowStatus",
         rx + " rows affected: " + sts.rowsAffected

@@ -32,7 +32,7 @@ class Hub {
 
   getToken = async () => {
     let params = {
-      company: config.hub.company,
+      login: config.hub.login,
       key: config.hub.key,
     };
 
@@ -78,34 +78,38 @@ class Hub {
 
     log("debug", "hub.get", "URL: " + url);
 
-    let response = await fetch(url, {
-      method: "GET",
-      headers: new Headers({
-        Authorization: "Bearer " + this.jwtToken,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      }),
-    });
-
     let data = null;
     let sts = false;
 
-    if (response.status !== 200) {
-      log("error", "hub.get", "Error getting data at " + url);
+    try {
+      let response = await fetch(url, {
+        method: "GET",
+        headers: new Headers({
+          Authorization: "Bearer " + this.jwtToken,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        }),
+      });
 
-      // Unauthorized lead to a new connection request
-      if (response.status === 401) {
-        this.jwtToken = null;
+      if (response.status !== 200) {
+        log("error", "hub.get", "Error getting data at " + url);
+
+        // Unauthorized lead to a new connection request
+        if (response.status === 401) {
+          this.jwtToken = null;
+        }
       } else {
-        data = response.json();
+        data = await response.json();
         sts = true;
       }
+
+      log("debug", "hub.get", "Status: " + sts);
+      log("debug", "hub.get", "Data: " + JSON.stringify(data));
+    } catch (error) {
+      log("error", "hub.get", error);
     }
 
-    log("debug", "hub.get", "Status: " + sts);
-    log("debug", "hub.get", "Data: " + JSON.stringify(data));
-
-    return { sts: sts, data: data };
+    return { status: sts, data: data };
   };
 
   post = async (method, params, data) => {
@@ -179,16 +183,18 @@ class Hub {
       error: row.ERROR,
     };
 
-    return this.post("queue", null, data);
+    return await this.post("queue", null, data);
   };
 
-  dequeue = async (type) => {
-    let data = {
-      source: config.system,
-      type: type,
+  dequeue = async (source, status, version, setRead) => {
+    let params = {
+      source: source,
+      status: status,
+      version: version,
+      setRead: setRead,
     };
 
-    return this.get("dequeue", data);
+    return await this.get("dequeue", params);
   };
 }
 

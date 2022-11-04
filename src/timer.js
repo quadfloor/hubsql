@@ -75,26 +75,27 @@ class Timer {
     }
   };
 
-  checkHubDoneRows = async () => {
+  checkHubStatusRows = async (statusCode) => {
     // Dequeue rows from server
-    let { sts, data } = await this.hub.dequeue("D");
+    let { status, data } = await this.hub.dequeue(config.system, statusCode, "1", true);
 
-    console.log("HERE!!!!!!!!!!")
-    console.log(sts)
-    console.log(data)
+    if (!status) {
+      log("debug", "hubToSql", "Error dequeueing from Hub");
+      return;
+    }
 
-    if (!sts) log("debug", "hubToSql", "No rows to dequeue");
-
-    log("error", "moveData", error);
-
+    if (!data) {
+      log("debug", "hubToSql", "No data dequeued from Hub");
+      return;
+    }
 
     for (const row of data) {
       try {
-        let sts = await this.sql.setRowStatus(row.sourceId, "D");
+        let status = await this.sql.setRowStatus(row.sourceId, statusCode);
       } catch (error) {
         log(
           "error",
-          "checkHubDoneRows",
+          "checkHubStatusRows",
           "Error queueing row " + row.ID + ": " + error
         );
       }
@@ -106,8 +107,9 @@ class Timer {
       log("debug", "moveData", "Start");
 
       if (this.sql.isConnected() && this.hub.isConnected()) {
-        this.sqlRowsToHub();
-        this.checkHubDoneRows();
+        await this.sqlRowsToHub();
+        await this.checkHubStatusRows("D");
+        await this.checkHubStatusRows("E");
       }
     } catch (error) {
       log("error", "moveData", error);
