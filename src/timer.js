@@ -17,23 +17,53 @@
  * from Quadfloor.
  *
  */
+import nconf from "nconf";
+import fs, { fdatasync } from "fs";
 
 import { log } from "./helper";
 
-import { config } from "./config";
 import { connect } from "mssql";
 
 const MOVE_DATA_TICKER = 5000;
 const CONNECT_TICKER = 10000;
+
+const LOOP_DATE_TIME_FILENAME = "hubsql.dat";
 
 class Timer {
   constructor(sql, hub) {
     this.sql = sql;
     this.hub = hub;
 
+    let conf = nconf.file({ file: __dirname + "/config.json" });
+
+    this.config = conf.get("system");
+
+    if (!this.config)
+      throw new Error("Missing config.json file parameter: system");
+
     this.connect();
-    this.moveData();
+    this.loop();
   }
+
+  lastTick = async () => {
+    let data = null;
+
+    try {
+      data = fs.readFileSync(LOOP_DATE_TIME_FILENAME);
+    } catch {
+      log("debug", "lastTick", "No file found.");
+    }
+
+    return JSON.parse(data);
+  };
+
+  resetLastTick = async () => {
+    let data = {
+      lastTick: Date.now(),
+    };
+
+    fs.writeFileSync(LOOP_DATE_TIME_FILENAME, JSON.stringify(data));
+  };
 
   connect = async () => {
     let sqlConnected = this.sql.isConnected();
@@ -48,8 +78,10 @@ class Timer {
       if (!sqlConnected) sqlConnected = await this.sql.connect();
       else log("debug", "connect", "Sql connected.");
 
-      if (!hubConnected) hubConnected = await this.hub.connect();
-      else log("debug", "connect", "Hub connected.");
+      if (!hubConnected) {
+        let status = await this.hub.connect();
+        hubConnected = status.status;
+      } else log("debug", "connect", "Hub connected.");
     } catch (error) {
       log("error", "connect", error);
     }
@@ -57,65 +89,78 @@ class Timer {
     setTimeout(this.connect, CONNECT_TICKER);
   };
 
-  sqlRowsToHub = async () => {
+  hubUpload = async () => {
     // Enqueue rows to server
-    let rows = await this.sql.getRowsWithStatus("Q");
+    let rows = await this.sql.getRows("tx", "Q");
 
     if (!rows) {
-      log("debug", "sqlToHub", "No sql data");
+      log("debug", "hubUpload", "No sql data");
     } else {
       for (const row of rows) {
         try {
-          let sts = await this.hub.queue(row);
-          if (sts) await this.sql.setRowStatus(row.ID, "P"); // Set processed
+          let ret = await this.hub.queue(row);
+
+          if (ret.status) {
+            // Set processed
+            await this.sql.setRowStatus(
+              "tx",
+              row.ID,
+              ret.data.status,
+              ret.data.error
+            ); 
+          }
         } catch (error) {
-          log("error", "sqlToHub", "Error moving row " + row.ID + ": " + error);
+          log(
+            "error",
+            "hubUpload",
+            "Error moving row " + row.ID + ": " + error
+          );
         }
       }
     }
   };
 
-  checkHubStatusRows = async (statusCode) => {
-    // Dequeue rows from server
-    let { status, data } = await this.hub.dequeue(config.system, statusCode, "1", true);
+  hubDownload = async () => {
+    let last = await this.lastTick();
 
-    if (!status) {
-      log("debug", "hubToSql", "Error dequeueing from Hub");
+    log("debug", "hubDownload", "Last loop date time: " + JSON.stringify(last));
+
+    // First interaction - wait till next loop
+    if (!last) {
+      await this.resetLastTick();
       return;
     }
 
-    if (!data) {
-      log("debug", "hubToSql", "No data dequeued from Hub");
-      return;
-    }
+    // Dequeue rows from hub
+    let ret = await this.hub.dequeue(last.lastTick);
 
-    for (const row of data) {
+    if (!ret.status) {
+      log("error", "hubDownload", "Error getting data");
+    } else if (ret.data.length === 0) {
+      log("debug", "hubDownload", "No data");
+    } else {
       try {
-        let status = await this.sql.setRowStatus(row.sourceId, statusCode);
+        await this.sql.putRows("rx", ret.data);
+        await this.resetLastTick();
       } catch (error) {
-        log(
-          "error",
-          "checkHubStatusRows",
-          "Error queueing row " + row.ID + ": " + error
-        );
+        log("error", "hubDownload", "Error putting rows: " + error);
       }
     }
   };
 
-  moveData = async () => {
+  loop = async () => {
     try {
-      log("debug", "moveData", "Start");
+      log("debug", "loop", "Start");
 
       if (this.sql.isConnected() && this.hub.isConnected()) {
-        await this.sqlRowsToHub();
-        await this.checkHubStatusRows("D");
-        await this.checkHubStatusRows("E");
+        await this.hubUpload();
+        //await this.hubDownload();
       }
     } catch (error) {
-      log("error", "moveData", error);
+      log("error", "loop", error);
     }
 
-    setTimeout(this.moveData, MOVE_DATA_TICKER);
+    setTimeout(this.loop, MOVE_DATA_TICKER);
   };
 }
 

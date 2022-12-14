@@ -1,23 +1,28 @@
 {
   "name": "hubsql",
   "version": "1.0.0",
+  "license": "UNLICENSED",
   "scripts": {
     "start": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js",
     "drop-sql-tables": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --drop-sql-tables",
     "create-sql-tables": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --create-sql-tables",
-    "insert-sql-rows": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --insert-sql-rows",
+    "insert-tx-rows": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --insert-tx-rows",
+    "list-tx-rows": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --list-tx-rows",
+    "list-rx-rows": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --list-rx-rows",
     "winstart": "set NODE_ENV=development && babel-node --ignore=' ' ./src/index.js",
     "build": "webpack --config ./config/webpack.js",
     "lint": "eslint ."
   },
   "dependencies": {
-    "mssql": "^9.0.1"
+    "mssql": "^9.0.1",
+    "nconf": "^0.12.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.12.10",
-    "@babel/node": "^7.12.10",
-    "@babel/preset-env": "^7.12.11",
-    "webpack": "^4.14.0",
-    "webpack-cli": "^3.0.8"
+    "@babel/core": "^7.20.2",
+    "@babel/node": "^7.20.2",
+    "@babel/preset-env": "^7.20.2",
+    "babel-loader": "^9.1.0",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^4.10.0"
   }
 }

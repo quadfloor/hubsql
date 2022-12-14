@@ -1,7 +1,7 @@
 import mssql from "mssql";
+import nconf from "nconf";
 
 import { log } from "./helper";
-import { config } from "./config";
 
 const SQL_TABLE_DEFS =
   "( \
@@ -32,7 +32,7 @@ const SQL_TABLE_FIELDS =
   DELETEDAT \
 )";
 
-const SQL_TABLE_TEST_DATA =
+const SQL_TEST_DATA =
   "( \
   'TOTVS', \
   'QUADFLOOR', \
@@ -46,30 +46,69 @@ const SQL_TABLE_TEST_DATA =
   NULL \
 )";
 
+const SQL_RX_TABLE = "QFRX";
+const SQL_TX_TABLE = "QFTX";
+
 const SQL_TABLE_XML_DATA = {
-  WORKCENTER$PUT:
+  MATERIAL$POST:
     '<?xml version="1.0" encoding="UTF-8" ?> \
       <root> \
-        <name>WORKCENTER TEST</name> \
-        <description>WORKCENTER TEST DESCRIPTION</description> \
+        <NOME>MATERIAL TESTE DE INTEGRACAO</NOME> \
+        <CODIGO_MATERIAL>MATERIAL TESTE</CODIGO_MATERIAL> \
+        <DESCRICAO>DESCRICAO DO MATERIAL TESTE DE INTEGRACAO</DESCRICAO> \
+        <TIPO>MATERIA_PRIMA</TIPO> \
+        <FAMILIA>FAMILIA TESTE</FAMILIA> \
+        <UNIDADE>KG</UNIDADE> \
+        <PESO_UNITARIO_BRUTO>123,45</PESO_UNITARIO_BRUTO> \
+        <PESO_UNITARIO_LIQUIDO>678,90</PESO_UNITARIO_LIQUIDO> \
+        <RASTREABILIDADE>LOTE</RASTREABILIDADE> \
+        <VALIDADE>12</VALIDADE> \
       </root>',
-    MATERIAL$PUT: 
+  STRUCTURE_ITEM_STATUS$POST:
     '<?xml version="1.0" encoding="UTF-8" ?> \
-      <root> \
-        <name>WORKCENTER TEST</name> \
-        <description>WORKCENTER TEST DESCRIPTION</description> \
-      </root>',
-    INVENTORY$PUT:
+  <root> \
+    <CODIGO_MATERIAL>MATERIAL TESTE</CODIGO_MATERIAL> \
+    <CODIGO_MATERIAL_PAI>MATERIAL TESTE PAI</CODIGO_MATERIAL_PAI> \
+    <QUANTIDADE>987,65</QUANTIDADE> \
+    <QUANTIDADE_COM_PERDA>432,10</QUANTIDADE_COM_PERDA> \
+    <ATIVO>SIM</ATIVO>  \
+  </root>',
+  LOCATION$POST:
     '<?xml version="1.0" encoding="UTF-8" ?> \
-      <root> \
-        <name>WORKCENTER TEST</name> \
-        <description>WORKCENTER TEST DESCRIPTION</description> \
-      </root>',
+  <root> \
+    <NOME>LOCAL TESTE DE INTEGRACAO</NOME> \
+    <CODIGO_LOCAL>LOCAL TESTE</CODIGO_LOCAL> \
+    <DESCRICAO>DESCRICAO DO LOCAL TESTE DE INTEGRACAO</DESCRICAO> \
+  </root>',
+  INVENTORY$POST:
+    '<?xml version="1.0" encoding="UTF-8" ?> \
+  <root> \
+    <CODIGO_MATERIAL>MATERIAL TESTE</CODIGO_MATERIAL> \
+    <CODIGO_LOCAL>LOCAL TESTE</CODIGO_LOCAL> \
+    <SALDO>123,45</SALDO> \
+    <LOTE>LABC123</LOTE> \
+    <DATA_VALIDADE>01/01/2024</DATA_VALIDADE> \
+  </root>',
 };
 
 class Sql {
   constructor() {
     this.conn = null;
+
+    let conf = nconf.file({ file: __dirname + "/config.json" });
+
+    this.config = conf.get("sqlDb");
+
+    if (
+      !this.config.server ||
+      !this.config.username ||
+      !this.config.password ||
+      !this.config.port ||
+      !this.config.database
+    )
+      throw new Error(
+        "Missing config.json parameters: sqlDb.server, sqlDb.username, sqlDb.password, sqlDb.port, sqlDb.database"
+      );
   }
 
   isConnected = () => {
@@ -79,12 +118,12 @@ class Sql {
   connect = async () => {
     try {
       var cfg = {
-        server: config.sqlDb.server,
+        server: this.config.server,
         authentication: {
           type: "default",
           options: {
-            userName: config.sqlDb.username,
-            password: config.sqlDb.password,
+            userName: this.config.username,
+            password: this.config.password,
           },
         },
         options: {
@@ -93,7 +132,7 @@ class Sql {
           integratedSecurity: true,
           trustServerCertificate: true,
           rowCollectionOnDone: true,
-          database: config.sqlDb.database,
+          database: this.config.database,
           cryptoCredentialsDetails: {
             // Required for SQL Server 2012 connection,
             // as node 18 uses a newer TLS protocol
@@ -103,6 +142,7 @@ class Sql {
       };
 
       log("debug", "Sql.connect", "Connecting to Sql...");
+      log("debug", "Sql.connect", "Configuration: " + JSON.stringify(cfg));
 
       this.conn = await mssql.connect(cfg);
 
@@ -139,24 +179,21 @@ class Sql {
         return;
       }
 
-      let rx = config.sqlDb.database + "_RX";
-      let tx = config.sqlDb.database + "_TX";
-
       let rxStmt =
         "IF NOT EXISTS (SELECT * FROM SYSOBJECTS WHERE NAME='" +
-        rx +
+        SQL_RX_TABLE +
         "' and XTYPE='U') CREATE TABLE " +
-        rx +
+        SQL_RX_TABLE +
         " " +
         SQL_TABLE_DEFS +
         ";";
 
       await this.query(rxStmt);
-      console.log("info", "Sql.createTables", rx + " table created");
+      console.log("info", "Sql.createTables", SQL_RX_TABLE + " table created");
 
-      let txStmt = rxStmt.replaceAll(rx, tx);
+      let txStmt = rxStmt.replaceAll(SQL_RX_TABLE, SQL_TX_TABLE);
       await this.query(txStmt);
-      console.log("info", "Sql.createTables", tx + " table created");
+      console.log("info", "Sql.createTables", SQL_TX_TABLE + " table created");
     } catch (error) {
       log("error", "Sql.createTables", "Error creating tables...");
       log("error", "Sql.createTables", error);
@@ -172,17 +209,14 @@ class Sql {
         return;
       }
 
-      let rx = config.sqlDb.database + "_RX";
-      let tx = config.sqlDb.database + "_TX";
-
-      let rxStmt = "DROP TABLE " + rx;
+      let rxStmt = "DROP TABLE " + SQL_RX_TABLE;
 
       await this.query(rxStmt);
-      console.log("info", "Sql.dropTables", rx + " table drop");
+      console.log("info", "Sql.dropTables", SQL_RX_TABLE + " table drop");
 
-      let txStmt = rxStmt.replaceAll(rx, tx);
+      let txStmt = rxStmt.replaceAll(SQL_RX_TABLE, SQL_TX_TABLE);
       await this.query(txStmt);
-      console.log("info", "Sql.dropTables", tx + " table drop");
+      console.log("info", "Sql.dropTables", SQL_TX_TABLE + " table drop");
     } catch (error) {
       log("error", "Sql.dropTables", "Error dropping tables...");
       log("error", "Sql.dropTables", error);
@@ -191,7 +225,7 @@ class Sql {
     }
   };
 
-  insertTestRows = async () => {
+  insertTestRows = async (queue) => {
     try {
       if (!this.conn) {
         log(
@@ -202,22 +236,28 @@ class Sql {
         return;
       }
 
-      let tx = config.sqlDb.database + "_TX";
+      let table = queue === "tx" ? SQL_TX_TABLE : SQL_RX_TABLE;
 
       let insertStmt =
         "INSERT INTO " +
-        tx +
+        table +
+        " " +
         SQL_TABLE_FIELDS +
         " VALUES " +
-        SQL_TABLE_TEST_DATA;
+        SQL_TEST_DATA;
 
-      const types = ["MATERIAL$PUT", "WORKCENTER$PUT", "INVENTORY$PUT"];
+      let types =
+        queue === "tx"
+          ? ["MATERIAL$POST", "STRUCTURE_ITEM_STATUS$POST", "LOCATION$POST", "INVENTORY$POST"]
+          : ["PRODUCTION_ORDER$POST", "PRODUCTION_REPORT$POST", "CONSUMPTION$POST"];
 
       for (const type of types) {
-        let stmt = insertStmt.replaceAll("@type", type).replaceAll("@data", SQL_TABLE_XML_DATA[type]);
+        let stmt = insertStmt
+          .replaceAll("@type", type)
+          .replaceAll("@data", SQL_TABLE_XML_DATA[type]);
 
         await this.query(stmt);
-        console.log("info", "Sql.insertTestRows", tx + " row inserted");
+        console.log("info", "Sql.insertTestRows", table + " row inserted");
       }
     } catch (error) {
       log("error", "Sql.insertTestRows", "Error inserting test rows...");
@@ -227,51 +267,120 @@ class Sql {
     }
   };
 
-  // Get from SQL side (TX queue on SQL system)
-  getRowsWithStatus = async (status) => {
+  listRows = async (queue) => {
     try {
       if (!this.conn) {
-        log(
-          "debug",
-          "Sql.getRowsWithStatus",
-          "Cannot get sql data - no connection."
-        );
+        log("error", "Sql.listRows", "Cannot list rows - no connection.");
         return;
       }
 
-      let rx = config.sqlDb.database + "_TX";
+      let rows = await this.getRows(queue);
 
-      let rxStmt =
-        "SELECT * FROM  " +
-        rx +
-        " WHERE STATUS='" +
-        status +
-        "' ORDER BY ID ASC";
+      for (const row of rows) {
+        console.log(row);
+      }
 
-      let data = await this.query(rxStmt);
+      log("info", "Sql.listRows", rows.length + " rows listed.");
+    } catch (error) {
+      log(
+        "error",
+        "Sql.listRows",
+        "Error listing rows at " + queue + " queue..."
+      );
+      log("error", "Sql.listRows", error);
+
+      this.conn = null;
+    }
+  };
+
+  // Get from SQL side (TX or RX queue on SQL system)
+  getRows = async (queue, status) => {
+    try {
+      if (!this.conn) {
+        log("debug", "Sql.getRows", "Cannot get sql data - no connection.");
+        return;
+      }
+
+      let table = queue === "tx" ? SQL_TX_TABLE : SQL_RX_TABLE;
+
+      let stmt = "SELECT * FROM  " + table;
+
+      if (status) stmt += " WHERE STATUS='" + status + "'";
+
+      stmt += " ORDER BY ID ASC";
+
+      let data = await this.query(stmt);
 
       let rows = data.recordsets[0];
       log(
         "debug",
-        "Sql.getRowsWithStatus",
-        rx + " data received: " + rows.length + " records."
+        "Sql.getRows",
+        table + " data received: " + rows.length + " records."
       );
 
       return rows;
     } catch (error) {
       log(
         "error",
-        "Sql.getRowsWithStatus",
-        "Error getting sql side data from sql tx queue..."
+        "Sql.getRows",
+        "Error getting sql side data from sql " + queue + " queue..."
       );
-      log("error", "Sql.getRowsWithStatus", error);
+      log("error", "Sql.getRows", error);
 
       this.conn = null;
     }
   };
 
-  // Set the row as queued at SQL side (TX queue on SQL system)
-  setRowStatus = async (id, status) => {
+  putRows = async (queue, rows) => {
+    try {
+      if (!this.conn) {
+        log("error", "Sql.putRows", "Cannot put rows - no connection.");
+        return;
+      }
+
+      if (!rows) {
+        log("error", "Sql.putRows", "Cannot put rows - no data.");
+        return;
+      }
+
+      let table = queue === "tx" ? SQL_TX_TABLE : SQL_RX_TABLE;
+
+      for (const row of rows) {
+        let data = [
+          row.source,
+          row.destination,
+          row.type,
+          row.version,
+          row.data,
+          row.status,
+          row.error,
+          "CURRENT_TIMESTAMP",
+          "NULL",
+          "NULL",
+        ];
+
+        let insertStmt =
+          "INSERT INTO " +
+          table +
+          " " +
+          SQL_TABLE_FIELDS +
+          " VALUES " +
+          data.join(",") +
+          ",";
+
+        await this.query(stmt);
+        console.log("info", "Sql.putRows", table + " row inserted");
+      }
+    } catch (error) {
+      log("error", "Sql.putRows", "Error putting rows...");
+      log("error", "Sql.putRows", error);
+
+      this.conn = null;
+    }
+  };
+
+  // Set the row as queued at SQL side (TX or RX queue on SQL system)
+  setRowStatus = async (queue, id, status, error) => {
     try {
       if (!this.conn) {
         log(
@@ -282,28 +391,36 @@ class Sql {
         return;
       }
 
-      let rx = config.sqlDb.database + "_TX";
+      let errorStmt = error ? "'" + error + "'" : "NULL";
 
-      let rxStmt =
+      let table = queue === "tx" ? SQL_TX_TABLE : SQL_RX_TABLE;
+
+      let stmt =
         "UPDATE " +
-        rx +
+        table +
         " SET STATUS = '" +
         status +
-        "' WHERE ID = '" +
+        "', ERROR = " +
+        errorStmt +
+        " WHERE ID = '" +
         id +
         "'";
 
-      let sts = await this.query(rxStmt);
+      let sts = await this.query(stmt);
 
       log(
         "debug",
         "Sql.setRowStatus",
-        rx + " rows affected: " + sts.rowsAffected
+        table + " rows affected: " + sts.rowsAffected
       );
 
       return sts.rowsAffected === 1;
     } catch (error) {
-      log("error", "Sql.setRowStatus", "Error setting tx queue row status...");
+      log(
+        "error",
+        "Sql.setRowStatus",
+        "Error setting " + table + " queue row status..."
+      );
       log("error", "Sql.setRowStatus", error);
 
       this.conn = null;

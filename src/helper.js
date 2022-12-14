@@ -18,7 +18,7 @@
  *
  */
 
-const DEBUG = false;
+const DEBUG = true;
 
 export const getDateStr = () => {
   const date = new Date();

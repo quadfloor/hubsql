@@ -18,12 +18,26 @@
  *
  */
 
+import nconf from "nconf";
+
 import { log } from "./helper";
-import { config } from "./config";
 
 class Hub {
   constructor() {
     this.jwtToken = null;
+    let conf = nconf.file({ file: __dirname + "/config.json" });
+
+    this.config = conf.get("hub");
+
+    if (
+      !this.config.URL ||
+      !this.config.port ||
+      !this.config.login ||
+      !this.config.key
+    )
+      throw new Error(
+        "Missing config.json parameters: parametros hub.address, hub.port, hub.login e hub.key"
+      );
   }
 
   isConnected = () => {
@@ -32,11 +46,13 @@ class Hub {
 
   getToken = async () => {
     let params = {
-      login: config.hub.login,
-      key: config.hub.key,
+      login: this.config.login,
+      key: this.config.key,
     };
 
-    let url = new URL("http://" + config.hub.address + "/v1.0/token");
+    let url = new URL(
+      "http://" + this.config.URL + ":" + this.config.port + "/api/v1.0/token"
+    );
     for (const p in params) url.searchParams.append(p, params[p]);
 
     log("debug", "hub.token", "Getting token at " + url);
@@ -50,20 +66,45 @@ class Hub {
       log("debug", "hub.token", "Failed to retrieve token: " + msg);
       this.jwtToken = null;
 
-      return false;
+      return { status: false, data: null };
     } else {
       let data = await response.json();
       log("debug", "hub.token", "Token retrieved successfully.");
 
       if (data.jwtToken) {
         this.jwtToken = data.jwtToken;
-        return true;
+        return { status: true, data: data.jwtToken };
       }
 
-      return false;
+      return { status: false, data: null };
     }
 
-    return false;
+    return { status: false, data: null };
+  };
+
+  connect = async () => {
+    try {
+      log("info", "hub.connect", "Connecting to Quadfloor Hub...");
+
+      await this.getToken();
+
+      if (this.jwtToken) {
+        log("info", "hub.connect", "Quadfloor Hub connected...");
+        return { status: true, data: null };
+      }
+
+      log("info", "hub.connect", "Quadfloor Hub connection error...");
+      return { status: false, data: null };
+    } catch (error) {
+      log("error", "hub.connect", "Cannot connect to Quadfloor Hub.");
+      log("error", "hub.connect", error);
+
+      this.jwtToken = null;
+
+      return { status: false, data: null };
+    }
+
+    return { status: false, data: null };
   };
 
   get = async (method, params) => {
@@ -71,15 +112,21 @@ class Hub {
 
     let url =
       "http://" +
-      config.hub.address +
-      "/v1.0/" +
+      this.config.URL +
+      ":" +
+      this.config.port +
+      "/api/tablemessages/v1.0/" +
+      this.config.service +
+      "/" +
       method +
       (query ? "?" + query : "");
 
     log("debug", "hub.get", "URL: " + url);
 
-    let data = null;
-    let sts = false;
+    let ret = {
+      status: false,
+      data: null,
+    };
 
     try {
       let response = await fetch(url, {
@@ -99,33 +146,42 @@ class Hub {
           this.jwtToken = null;
         }
       } else {
-        data = await response.json();
-        sts = true;
+        ret.data = await response.json();
+        ret.status = true;
       }
 
-      log("debug", "hub.get", "Status: " + sts);
-      log("debug", "hub.get", "Data: " + JSON.stringify(data));
+      log("debug", "hub.get", "Status: " + ret.status);
+      log("debug", "hub.get", "Data: " + JSON.stringify(ret.data));
     } catch (error) {
       log("error", "hub.get", error);
     }
 
-    return { status: sts, data: data };
+    return ret;
   };
 
-  post = async (method, params, data) => {
+  put = async (method, params, data) => {
     let query = new URLSearchParams(params);
 
     let url =
       "http://" +
-      config.hub.address +
-      "/v1.0/" +
+      this.config.URL +
+      ":" +
+      this.config.port +
+      "/api/tablemessages/v1.0/" +
+      this.config.service +
+      "/" +
       method +
       (query ? "?" + query : "");
 
-    log("debug", "hub.post", "URL: " + url + " Data: " + JSON.stringify(data));
+    log("debug", "hub.put", "URL: " + url + " Data: " + JSON.stringify(data));
+
+    let ret = {
+      status: false,
+      data: null,
+    };
 
     let response = await fetch(url, {
-      method: "POST",
+      method: "PUT",
       headers: new Headers({
         Authorization: "Bearer " + this.jwtToken,
         Accept: "application/json",
@@ -135,40 +191,18 @@ class Hub {
     });
 
     if (response.status !== 200) {
-      log("error", "hub.post", "Error posting data at " + url);
+      log("error", "hub.put", "Error putting data at " + url);
 
       // Unauthorized lead to a new connection request
-      if (response.status === 401) this.jwtToken = null;
-
-      return false;
-    }
-
-    return true;
-  };
-
-  connect = async () => {
-    try {
-      log("info", "hub.connect", "Connecting to Quadfloor Hub...");
-
-      await this.getToken();
-
-      if (this.jwtToken) {
-        log("info", "hub.connect", "Quadfloor Hub connected...");
-        return true;
+      if (response.status === 401) {
+        this.jwtToken = null;
       }
-
-      log("info", "hub.connect", "Quadfloor Hub connection error...");
-      return false;
-    } catch (error) {
-      log("error", "hub.connect", "Cannot connect to Quadfloor Hub.");
-      log("error", "hub.connect", error);
-
-      this.jwtToken = null;
-
-      return false;
+    } else {
+      ret.data = await response.json();
+      ret.status = true;
     }
 
-    return false;
+    return ret;
   };
 
   queue = async (row) => {
@@ -183,15 +217,12 @@ class Hub {
       error: row.ERROR,
     };
 
-    return await this.post("queue", null, data);
+    return await this.put("queue", null, data);
   };
 
-  dequeue = async (source, status, version, setRead) => {
+  dequeue = async (fromDateTime) => {
     let params = {
-      source: source,
-      status: status,
-      version: version,
-      setRead: setRead,
+      fromDateTime: fromDateTime
     };
 
     return await this.get("dequeue", params);

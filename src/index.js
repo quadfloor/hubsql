@@ -25,14 +25,16 @@ if (
 ) {
   console.log("Arguments:");
   console.log(
-    "create-sql-tables: Create the system sql tables according to the configuration file."
+    "--create-sql-tables: Create the system sql tables according to the configuration file."
   );
   console.log(
-    "drop-sql-tables: Drop the system sql tables according to the configuration file."
+    "--drop-sql-tables: Drop the system sql tables according to the configuration file."
   );
-  console.log(
-    "insert-sql-rows: Insert SQL side test rows on its TX queue."
-  );
+  console.log("--insert-tx-rows: Insert SQL side test rows on its TX queue.");
+  console.log("--insert-rx-rows: Insert SQL side test rows on its RX queue.");
+  console.log("--list-tx-rows: List rows on its TX queue.");
+  console.log("--list-rx-rows: List rows on its RX queue.");
+  process.exit(0);
 }
 
 let sql = new Sql();
@@ -49,8 +51,20 @@ switch (args[2]) {
     fnc = sql.dropTables;
     break;
 
-  case "--insert-sql-rows":
-    fnc = sql.insertTestRows;
+  case "--insert-tx-rows":
+    fnc = sql.insertTestRows.bind(null, "tx");
+    break;
+
+  case "--insert-rx-rows":
+    fnc = sql.insertTestRows.bind(null, "rx");
+    break;
+
+  case "--list-tx-rows":
+    fnc = sql.listRows.bind(null, "tx");
+    break;
+
+  case "--list-rx-rows":
+    fnc = sql.listRows.bind(null, "rx");
     break;
 }
 
