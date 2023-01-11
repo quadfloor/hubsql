@@ -45,7 +45,7 @@ class Hub {
   };
 
   getToken = async () => {
-    let params = {
+    let query = {
       login: this.config.login,
       key: this.config.key,
     };
@@ -53,7 +53,7 @@ class Hub {
     let url = new URL(
       "http://" + this.config.URL + ":" + this.config.port + "/api/v1.0/token"
     );
-    for (const p in params) url.searchParams.append(p, params[p]);
+    for (const p in query) url.searchParams.append(p, query[p]);
 
     log("debug", "hub.token", "Getting token at " + url);
 
@@ -107,8 +107,8 @@ class Hub {
     return { status: false, data: null };
   };
 
-  get = async (method, params) => {
-    let query = new URLSearchParams(params);
+  get = async (method, query) => {
+    let q = new URLSearchParams(query);
 
     let url =
       "http://" +
@@ -119,9 +119,9 @@ class Hub {
       this.config.service +
       "/" +
       method +
-      (query ? "?" + query : "");
+      (q ? "?" + q : "");
 
-    log("debug", "hub.get", "URL: " + url);
+    log("debug", "hub.get", "URL: " + url + " Body: " + JSON.stringify(body));
 
     let ret = {
       status: false,
@@ -159,8 +159,8 @@ class Hub {
     return ret;
   };
 
-  put = async (method, params, data) => {
-    let query = new URLSearchParams(params);
+  put = async (method, query, body) => {
+    let q = new URLSearchParams(query);
 
     let url =
       "http://" +
@@ -171,9 +171,9 @@ class Hub {
       this.config.service +
       "/" +
       method +
-      (query ? "?" + query : "");
+      (q ? "?" + q : "");
 
-    log("debug", "hub.put", "URL: " + url + " Data: " + JSON.stringify(data));
+    log("debug", "hub.put", "URL: " + url + " Body: " + JSON.stringify(body));
 
     let ret = {
       status: false,
@@ -187,7 +187,7 @@ class Hub {
         Accept: "application/json",
         "Content-Type": "application/json",
       }),
-      body: JSON.stringify(data),
+      body: JSON.stringify(body),
     });
 
     if (response.status !== 200) {
@@ -206,7 +206,7 @@ class Hub {
   };
 
   queue = async (row) => {
-    let data = {
+    let body = {
       id: row.ID,
       source: row.SOURCE,
       destination: row.DESTINATION,
@@ -217,15 +217,15 @@ class Hub {
       error: row.ERROR,
     };
 
-    return await this.put("queue", null, data);
+    return await this.put("queue", null, body);
   };
 
   dequeue = async (fromDateTime) => {
-    let params = {
-      fromDateTime: fromDateTime
+    let query = {
+      fromDateTime: fromDateTime,
     };
 
-    return await this.get("dequeue", params);
+    return await this.get("dequeue", query);
   };
 }
 
