@@ -153,8 +153,8 @@ class Timer {
       log("debug", "loop", "Start");
 
       if (this.sql.isConnected() && this.hub.isConnected()) {
-        await this.hubUpload();
-        //await this.hubDownload();
+        //await this.hubUpload();
+        await this.hubDownload();
       }
     } catch (error) {
       log("error", "loop", error);

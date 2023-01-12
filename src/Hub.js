@@ -19,6 +19,7 @@
  */
 
 import nconf from "nconf";
+import querystring from "querystring";
 
 import { log } from "./helper";
 
@@ -108,7 +109,12 @@ class Hub {
   };
 
   get = async (method, query) => {
-    let q = new URLSearchParams(query);
+
+    console.log("GET")
+    console.log(query)
+    let q = querystring.encode(query);
+    console.log(q)
+    console.log(querystring.encode({a: 1}))
 
     let url =
       "http://" +
@@ -121,7 +127,7 @@ class Hub {
       method +
       (q ? "?" + q : "");
 
-    log("debug", "hub.get", "URL: " + url + " Body: " + JSON.stringify(body));
+    log("debug", "hub.get", "URL: " + url);
 
     let ret = {
       status: false,
@@ -160,7 +166,7 @@ class Hub {
   };
 
   put = async (method, query, body) => {
-    let q = new URLSearchParams(query);
+    let q = querystring.encode(query);
 
     let url =
       "http://" +
@@ -220,10 +226,14 @@ class Hub {
     return await this.put("queue", null, body);
   };
 
-  dequeue = async (fromDateTime) => {
+  dequeue = async (lastDateTime) => {
     let query = {
-      fromDateTime: fromDateTime,
+      dateTime: { $gte: 1664557995000 }
+//      dateTime: { $gte: lastDateTime }
     };
+
+console.log("QUERY")
+console.log(query)
 
     return await this.get("dequeue", query);
   };
