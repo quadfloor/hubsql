@@ -133,17 +133,8 @@ class Sql {
           },
         },
         options: {
-          encrypt: true,
-          enableArithAbort: true,
-          integratedSecurity: true,
-          trustServerCertificate: true,
-          rowCollectionOnDone: true,
+          encrypt: false,
           database: this.config.database,
-          cryptoCredentialsDetails: {
-            // Required for SQL Server 2012 connection,
-            // as node 18 uses a newer TLS protocol
-            minVersion: "TLSv1",
-          },
         },
       };
 
@@ -254,8 +245,18 @@ class Sql {
 
       let types =
         queue === "tx"
-          ? ["MATERIAL$POST", "PRODUCT_STRUCTURE_COMPONENT$POST", "LOCATION$POST", "INVENTORY$POST", "PRODUCTION_ORDER_CODE$POST"]
-          : ["PRODUCTION_ORDER$POST", "PRODUCTION_REPORT$POST", "CONSUMPTION$POST"];
+          ? [
+              "MATERIAL$POST",
+              "PRODUCT_STRUCTURE_COMPONENT$POST",
+              "LOCATION$POST",
+              "INVENTORY$POST",
+              "PRODUCTION_ORDER_CODE$POST",
+            ]
+          : [
+              "PRODUCTION_ORDER$POST",
+              "PRODUCTION_REPORT$POST",
+              "CONSUMPTION$POST",
+            ];
 
       for (const type of types) {
         let stmt = insertStmt

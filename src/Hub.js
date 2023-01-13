@@ -19,7 +19,7 @@
  */
 
 import nconf from "nconf";
-import querystring from "querystring";
+import qs from "qs";
 
 import { log } from "./helper";
 
@@ -112,9 +112,9 @@ class Hub {
 
     console.log("GET")
     console.log(query)
-    let q = querystring.encode(query);
+    let q = qs.stringify(query);
     console.log(q)
-    console.log(querystring.encode({a: 1}))
+    console.log(qs.stringify({a: 1}))
 
     let url =
       "http://" +
@@ -166,7 +166,7 @@ class Hub {
   };
 
   put = async (method, query, body) => {
-    let q = querystring.encode(query);
+    let q = qs.stringify(query);
 
     let url =
       "http://" +
