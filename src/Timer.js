@@ -91,7 +91,7 @@ class Timer {
 
   hubUpload = async () => {
     // Enqueue rows to server
-    let rows = await this.sql.getRows("tx", "Q");
+    let rows = await this.sql.selectRows("tx", "Q");
 
     if (!rows) {
       log("debug", "hubUpload", "No sql data");
@@ -140,7 +140,7 @@ class Timer {
       log("debug", "hubDownload", "No data");
     } else {
       try {
-        await this.sql.putRows("rx", ret.data);
+        await this.sql.insertRows("rx", ret.data);
         await this.resetLastTick();
       } catch (error) {
         log("error", "hubDownload", "Error putting rows: " + error);
@@ -153,7 +153,7 @@ class Timer {
       log("debug", "loop", "Start");
 
       if (this.sql.isConnected() && this.hub.isConnected()) {
-        //await this.hubUpload();
+        await this.hubUpload();
         await this.hubDownload();
       }
     } catch (error) {

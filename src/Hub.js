@@ -109,12 +109,11 @@ class Hub {
   };
 
   get = async (method, query) => {
-
-    console.log("GET")
-    console.log(query)
+    console.log("GET");
+    console.log(query);
     let q = qs.stringify(query);
-    console.log(q)
-    console.log(qs.stringify({a: 1}))
+    console.log(q);
+    console.log(qs.stringify({ a: 1 }));
 
     let url =
       "http://" +
@@ -228,12 +227,8 @@ class Hub {
 
   dequeue = async (lastDateTime) => {
     let query = {
-      dateTime: { $gte: 1664557995000 }
-//      dateTime: { $gte: lastDateTime }
+      dateTime: lastDateTime
     };
-
-console.log("QUERY")
-console.log(query)
 
     return await this.get("dequeue", query);
   };

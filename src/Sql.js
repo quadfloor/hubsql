@@ -281,7 +281,7 @@ class Sql {
         return;
       }
 
-      let rows = await this.getRows(queue);
+      let rows = await this.selectRows(queue);
 
       for (const row of rows) {
         console.log(row);
@@ -301,10 +301,10 @@ class Sql {
   };
 
   // Get from SQL side (TX or RX queue on SQL system)
-  getRows = async (queue, status) => {
+  selectRows = async (queue, status) => {
     try {
       if (!this.conn) {
-        log("debug", "Sql.getRows", "Cannot get sql data - no connection.");
+        log("debug", "Sql.selectRows", "Cannot get sql data - no connection.");
         return;
       }
 
@@ -321,7 +321,7 @@ class Sql {
       let rows = data.recordsets[0];
       log(
         "debug",
-        "Sql.getRows",
+        "Sql.selectRows",
         table + " data received: " + rows.length + " records."
       );
 
@@ -329,58 +329,61 @@ class Sql {
     } catch (error) {
       log(
         "error",
-        "Sql.getRows",
+        "Sql.selectRows",
         "Error getting sql side data from sql " + queue + " queue..."
       );
-      log("error", "Sql.getRows", error);
+      log("error", "Sql.selectRows", error);
 
       this.conn = null;
     }
   };
 
-  putRows = async (queue, rows) => {
+  insertRows = async (queue, rows) => {
     try {
       if (!this.conn) {
-        log("error", "Sql.putRows", "Cannot put rows - no connection.");
+        log("error", "Sql.insertRows", "Cannot put rows - no connection.");
         return;
       }
 
       if (!rows) {
-        log("error", "Sql.putRows", "Cannot put rows - no data.");
+        log("error", "Sql.insertRows", "Cannot put rows - no data.");
         return;
       }
 
       let table = queue === "tx" ? SQL_TX_TABLE : SQL_RX_TABLE;
 
       for (const row of rows) {
+
+        console.log(row)
+
         let data = [
-          row.source,
-          row.destination,
-          row.type,
-          row.version,
-          row.data,
-          row.status,
-          row.error,
+          "'" + row.SOURCE + "'",
+          "'" + row.DESTINATION + "'",
+          "'" + row.TYPE + "'",
+          "'" + row.VERSION + "'",
+          row.DATA ? "'" + row.DATA + "'" : "NULL",
+          "'Q'",
+          row.ERROR ? "'" + row.ERROR + "'" : "NULL",
           "CURRENT_TIMESTAMP",
           "NULL",
           "NULL",
         ];
 
-        let insertStmt =
+        let stmt =
           "INSERT INTO " +
           table +
           " " +
           SQL_TABLE_FIELDS +
-          " VALUES " +
+          " VALUES (" +
           data.join(",") +
-          ",";
+          ")";
 
         await this.query(stmt);
-        console.log("info", "Sql.putRows", table + " row inserted");
+        console.log("info", "Sql.insertRows", table + " row inserted");
       }
     } catch (error) {
-      log("error", "Sql.putRows", "Error putting rows...");
-      log("error", "Sql.putRows", error);
+      log("error", "Sql.insertRows", "Error putting rows...");
+      log("error", "Sql.insertRows", error);
 
       this.conn = null;
     }
@@ -409,7 +412,7 @@ class Sql {
         status +
         "', ERROR = " +
         errorStmt +
-        " WHERE ID = '" +
+        ", PROCESSEDAT = CURRENT_TIMESTAMP WHERE ID = '" +
         id +
         "'";
 
