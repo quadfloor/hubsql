@@ -30,6 +30,7 @@ if (
   console.log(
     "--drop-sql-tables: Drop the system sql tables according to the configuration file."
   );
+  console.log("--clean-queues: Delete records from TX and RX queues.");
   console.log("--insert-tx-rows: Insert SQL side test rows on its TX queue.");
   console.log("--insert-rx-rows: Insert SQL side test rows on its RX queue.");
   console.log("--list-tx-rows: List rows on its TX queue.");
@@ -49,6 +50,10 @@ switch (args[2]) {
 
   case "--drop-sql-tables":
     fnc = sql.dropTables;
+    break;
+
+  case "--clean-queues":
+    fnc = sql.cleanQueues;
     break;
 
   case "--insert-tx-rows":

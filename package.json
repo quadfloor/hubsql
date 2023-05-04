@@ -6,6 +6,7 @@
     "start": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js",
     "drop-sql-tables": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --drop-sql-tables",
     "create-sql-tables": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --create-sql-tables",
+    "clean-queues": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --clean-queues",
     "insert-tx-rows": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --insert-tx-rows",
     "list-tx-rows": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --list-tx-rows",
     "list-rx-rows": "export NODE_ENV=development && babel-node --ignore=' ' ./src/index.js --list-rx-rows",

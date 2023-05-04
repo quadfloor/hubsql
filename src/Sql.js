@@ -73,7 +73,7 @@ const SQL_TABLE_XML_DATA = {
     <QUANTIDADE_COM_PERDA>432.10</QUANTIDADE_COM_PERDA> \
     <ATIVO>SIM</ATIVO>  \
   </root>',
-  LOCATION$POST:
+  STORAGE_AREA$POST:
     '<?xml version="1.0" encoding="UTF-8" ?> \
   <root> \
     <NOME>LOCAL TESTE DE INTEGRACAO</NOME> \
@@ -222,6 +222,30 @@ class Sql {
     }
   };
 
+
+  cleanQueues = async () => {
+    try {
+      if (!this.conn) {
+        log("error", "Sql.cleanQueues", "Cannot clean queues - no connection.");
+        return;
+      }
+
+      let rxStmt = "DELETE FROM " + SQL_RX_TABLE;
+
+      await this.query(rxStmt);
+      console.log("info", "Sql.cleanQueues", SQL_RX_TABLE + " table clean");
+
+      let txStmt = rxStmt.replaceAll(SQL_RX_TABLE, SQL_TX_TABLE);
+      await this.query(txStmt);
+      console.log("info", "Sql.cleanQueues", SQL_TX_TABLE + " table clean");
+    } catch (error) {
+      log("error", "Sql.cleanQueues", "Error cleaning queues...");
+      log("error", "Sql.cleanQueues", error);
+
+      this.conn = null;
+    }
+  };
+
   insertTestRows = async (queue) => {
     try {
       if (!this.conn) {
@@ -248,7 +272,7 @@ class Sql {
           ? [
               "MATERIAL$POST",
               "PRODUCT_STRUCTURE_COMPONENT$POST",
-              "LOCATION$POST",
+              "STORAGE_AREA$POST",
               "INVENTORY$POST",
               "PRODUCTION_ORDER_CODE$POST",
             ]
