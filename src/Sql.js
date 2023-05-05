@@ -113,7 +113,7 @@ class Sql {
       !this.config.database
     )
       throw new Error(
-        "Missing config.json parameters: sqlDb.server, sqlDb.username, sqlDb.password, sqlDb.port, sqlDb.database"
+        "Missing configuration file at " + __dirname + "/config.json: sqlDb.server, sqlDb.username, sqlDb.password, sqlDb.port, sqlDb.database"
       );
   }
 
