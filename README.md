@@ -26,7 +26,7 @@ To make it work on your environment, needs to add the configuration file at the 
   },
   "hub": {
     "URL": "hub.quadfloor.com",
-    "port": 14444,
+    "port": 4040,
     "service": "service",
     "login": "login",
     "key": "key"
