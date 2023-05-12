@@ -24,8 +24,8 @@ import { log } from "./helper";
 
 import { connect } from "mssql";
 
-const MOVE_DATA_TICKER = 5000;
-const CONNECT_TICKER = 10000;
+const MOVE_DATA_TICKER = 30000;
+const CONNECT_TICKER = 60000;
 
 const LOOP_DATE_TIME_FILENAME = "hubsql.dat";
 

@@ -109,11 +109,7 @@ class Hub {
   };
 
   get = async (method, query) => {
-    console.log("GET");
-    console.log(query);
     let q = qs.stringify(query);
-    console.log(q);
-    console.log(qs.stringify({ a: 1 }));
 
     let url =
       "http://" +

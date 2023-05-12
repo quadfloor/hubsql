@@ -1,1 +1,1 @@
-scp ./bundles/hubsql.tar.gz root@192.168.11.2:/root/upload
+scp ./bundles/hubsql.tar.gz root@192.168.11.2:/root/upload/

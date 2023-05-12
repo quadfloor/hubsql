@@ -37,6 +37,7 @@ printf "Copying hubsql...\n";
 cp -v $DEVROOT/bundle/* ./bundles/hubsql
 cp -v $DEVROOT/package.json ./bundles/hubsql
 cp -v $DEVROOT/deploy/target/config.json ./bundles/hubsql
+cp -v $DEVROOT/deploy/target/hubsql.service ./bundles/hubsql
 
 printf "Copying the installer scripts...\n";
 cp -v $DEVROOT/deploy/target/install.sh ./bundles 

@@ -1,0 +1,15 @@
+[Unit]
+Description=hubsql.js - Quadfloor Hub SQL tables connection
+Documentation=https://www.quadfloor.com
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/node /root/bin/hubsql.js
+Restart=on-failure
+StandardOutput=file:/var/log/hubsql.log
+StandardError=file:/var/log/hubsql.log
+
+[Install]
+WantedBy=multi-user.target
