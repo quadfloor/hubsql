@@ -10,7 +10,7 @@ printf "Installing packages...\n"
 npm install
 
 printf "Copying systemd files...\n"
-\cp -r hubsql/hubsql.service /lib/systemd/system/
+cp -r hubsql/hubsql.service /lib/systemd/system/
 
 printf "Make monit start on boot...\n"
 systemctl daemon-reload
