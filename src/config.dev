@@ -1,0 +1,17 @@
+{
+  "sqlDb": {
+    "server": "10.0.0.180",
+    "username": "hubsql",
+    "password": "hubsql123",
+    "port": 1433,
+    "database": "QFNTFX"
+  },
+  "hub": {
+    "URL": "hub.quadfloor.com",
+    "port": 4040,
+    "service": "NITRIFLEX",
+    "login": "nitriflex",
+    "key": "nitriflex123"
+  },
+  "system": "TOTVS"
+}

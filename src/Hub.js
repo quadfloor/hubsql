@@ -104,8 +104,6 @@ class Hub {
 
       return { status: false, data: null };
     }
-
-    return { status: false, data: null };
   };
 
   get = async (method, query) => {
@@ -116,7 +114,7 @@ class Hub {
       this.config.URL +
       ":" +
       this.config.port +
-      "/api/tablemessages/v1.0/" +
+      "/api/v1.0/mq/" +
       this.config.service +
       "/" +
       method +
@@ -155,6 +153,7 @@ class Hub {
       log("debug", "hub.get", "Data: " + JSON.stringify(ret.data));
     } catch (error) {
       log("error", "hub.get", error);
+      this.jwtToken = null;
     }
 
     return ret;
@@ -168,7 +167,7 @@ class Hub {
       this.config.URL +
       ":" +
       this.config.port +
-      "/api/tablemessages/v1.0/" +
+      "/api/v1.0/mq/" +
       this.config.service +
       "/" +
       method +
@@ -181,26 +180,32 @@ class Hub {
       data: null,
     };
 
-    let response = await fetch(url, {
-      method: "PUT",
-      headers: new Headers({
-        Authorization: "Bearer " + this.jwtToken,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      }),
-      body: JSON.stringify(body),
-    });
+    try {
+      let response = await fetch(url, {
+        method: "PUT",
+        headers: new Headers({
+          Authorization: "Bearer " + this.jwtToken,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify(body),
+      });
 
-    if (response.status !== 200) {
-      log("error", "hub.put", "Error putting data at " + url);
+      if (response.status !== 200) {
+        log("error", "hub.put", "Error putting data at " + url);
 
-      // Unauthorized lead to a new connection request
-      if (response.status === 401) {
-        this.jwtToken = null;
+        // Unauthorized lead to a new connection request
+        if (response.status === 401) {
+          this.jwtToken = null;
+        }
+      } else {
+        ret.data = await response.json();
+        ret.status = true;
       }
-    } else {
-      ret.data = await response.json();
-      ret.status = true;
+    }
+    catch (error) {
+      log("error", "hub.put", error);
+      this.jwtToken = null;
     }
 
     return ret;
