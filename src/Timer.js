@@ -27,7 +27,7 @@ import { connect } from "mssql";
 const MOVE_DATA_TICKER = 30000;
 const CONNECT_TICKER = 60000;
 
-const LOOP_DATE_TIME_FILENAME = "hubsql.dat";
+const LOOP_DATE_TIME_FILENAME = "./hubsql.dat"; 
 
 class Timer {
   constructor(sql, hub) {
