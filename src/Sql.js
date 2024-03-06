@@ -64,6 +64,25 @@ const SQL_TABLE_XML_DATA = {
         <RASTREABILIDADE>LOTE</RASTREABILIDADE> \
         <VALIDADE_MESES>12</VALIDADE_MESES> \
       </root>',
+  PRODUCT_STRUCTURE$POST:
+    '<?xml version="1.0" encoding="UTF-8" ?> \
+    <root> \
+      <CODIGO_MATERIAL_PAI>MATERIAL TESTE PAI</CODIGO_MATERIAL_PAI> \
+      <COMPONENTS> \
+        <CODIGO_MATERIAL>MATERIAL TESTE</CODIGO_MATERIAL> \
+        <CODIGO_MATERIAL_PAI>MATERIAL TESTE PAI</CODIGO_MATERIAL_PAI> \
+        <QUANTIDADE>987.65</QUANTIDADE> \
+        <QUANTIDADE_COM_PERDA>432.10</QUANTIDADE_COM_PERDA> \
+        <ATIVO>SIM</ATIVO>  \
+      </COMPONENTS> \
+      <COMPONENTS> \
+        <CODIGO_MATERIAL>MATERIAL TESTE 1</CODIGO_MATERIAL> \
+        <CODIGO_MATERIAL_PAI>MATERIAL TESTE PAI</CODIGO_MATERIAL_PAI> \
+        <QUANTIDADE>123.34</QUANTIDADE> \
+        <QUANTIDADE_COM_PERDA>187.84</QUANTIDADE_COM_PERDA> \
+        <ATIVO>SIM</ATIVO>  \
+      </COMPONENTS> \
+    </root>',
   PRODUCT_STRUCTURE_COMPONENT$POST:
     '<?xml version="1.0" encoding="UTF-8" ?> \
   <root> \
@@ -113,7 +132,9 @@ class Sql {
       !this.config.database
     )
       throw new Error(
-        "Missing configuration file at " + __dirname + "/config.json: sqlDb.server, sqlDb.username, sqlDb.password, sqlDb.port, sqlDb.database"
+        "Missing configuration file at " +
+          __dirname +
+          "/config.json: sqlDb.server, sqlDb.username, sqlDb.password, sqlDb.port, sqlDb.database"
       );
   }
 
@@ -222,7 +243,6 @@ class Sql {
     }
   };
 
-
   cleanQueues = async () => {
     try {
       if (!this.conn) {
@@ -271,6 +291,7 @@ class Sql {
         queue === "tx"
           ? [
               "MATERIAL$POST",
+              "PRODUCT_STRUCTURE$POST",
               "PRODUCT_STRUCTURE_COMPONENT$POST",
               "STORAGE_AREA$POST",
               "INVENTORY$POST",
@@ -377,8 +398,7 @@ class Sql {
       let table = queue === "tx" ? SQL_TX_TABLE : SQL_RX_TABLE;
 
       for (const row of rows) {
-
-        console.log(row)
+        console.log(row);
 
         let data = [
           "'" + row.SOURCE + "'",
